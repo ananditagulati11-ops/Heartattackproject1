@@ -36,6 +36,10 @@ data$heart_attackB <- NULL
 summary()
 boxplot(data$troponin_ngL, main = "Troponin Boxplot")
 boxplot(data$troponin_ngL)
-system("git status")
-system("git --version")
-file.exists(".git")
+View(data)
+install.packages("ggplot2")
+library(ggplot2)
+ggplot(data, aes(x = age, fill = heart_attack)) +
+  geom_histogram(bins = 30)
+View(data)
+
