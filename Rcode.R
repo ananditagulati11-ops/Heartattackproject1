@@ -134,3 +134,9 @@ data$heart_attack <- factor(
 View(data$heart_attack)
 str(data$heart_attack)
 table(data$heart_attack)
+library(ggplot2)
+boxplot(blood_sugar ~ heart_attack, data = data,
+        main = "Blood Sugar vs Heart Attack",
+        xlab = "Heart Attack",
+        ylab = "Blood Sugar")
+write.csv(data, "cleaned_heart_attack_data.csv", row.names = FALSE)
