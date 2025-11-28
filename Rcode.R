@@ -140,3 +140,4 @@ boxplot(blood_sugar ~ heart_attack, data = data,
         xlab = "Heart Attack",
         ylab = "Blood Sugar")
 write.csv(data, "cleaned_heart_attack_data.csv", row.names = FALSE)
+class("heart_attack")
