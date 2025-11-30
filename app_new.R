@@ -214,8 +214,13 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                             
                             plotOutput("box1", height = "250px"),
                             plotOutput("box2", height = "250px"),
-                            plotOutput("box3", height = "250px"),
-                            
+                            # INTERACTIVE THIRD PLOT
+                            selectInput("curve_bio",
+                                        "Select biomarker to visualize:",
+                                        choices = c("Troponin", "CK-MB", "Both"),
+                                        selected = "Both"),
+                            plotOutput("box3"),
+                            uiOutput("biomarker_comp_msg"),
                             br()
                           )
                  )
@@ -341,6 +346,10 @@ server <- function(input, output, session) {
       ) +
       theme_minimal(base_size = 14)
   })
+  output$troponin_msg <- renderUI({
+    HTML("<b>High Troponin</b> means heart muscle cells are leaking proteins into the blood.
+       This usually happens when the heart is injured — such as during a heart attack.")
+  })
   
   # =======================
   # 2) CK-MB Risk Plot
@@ -365,36 +374,54 @@ server <- function(input, output, session) {
       ) +
       theme_minimal(base_size = 14)
   })
+  output$ckmb_msg <- renderUI({
+    HTML("<b>High CK-MB</b> indicates damage to heart or skeletal muscle.
+       People with higher CK-MB levels are more likely to have had a heart attack.")
+  })
+ 
+  # =======================
+  # 3) Better Biomarker Risk Plot
+  # =======================
   
-  # =======================
-  # 3) Heart Rate Risk Plot
-  # =======================
-  # 3) Systolic Blood Pressure Risk Plot
-  # =======================
   output$box3 <- renderPlot({
-    data %>%
-      mutate(
-        sbp_cat = ifelse(systolic_blood_pressure >= 140,
-                         "High Systolic BP (Hypertension)",
-                         "Normal Systolic BP"),
-        sbp_cat = factor(sbp_cat,
-                         levels = c("Normal Systolic BP",
-                                    "High Systolic BP (Hypertension)"))
-      ) %>%
-      count(heart_attack, sbp_cat) %>%
-      ggplot(aes(x = sbp_cat, y = n, fill = heart_attack)) +
-      geom_col(position = "dodge") +
+    
+    # Logistic regression models
+    troponin_model <- glm(heart_attack ~ troponin_ngl, data = data, family = binomial)
+    ckmb_model <- glm(heart_attack ~ ck_mb, data = data, family = binomial)
+    
+    # Prediction ranges
+    troponin_df <- data.frame(troponin_ngl = seq(min(data$troponin_ngl),
+                                                 max(data$troponin_ngl), length.out = 100))
+    troponin_df$prob <- predict(troponin_model, troponin_df, type = "response")
+    
+    ckmb_df <- data.frame(ck_mb = seq(min(data$ck_mb),
+                                      max(data$ck_mb), length.out = 100))
+    ckmb_df$prob <- predict(ckmb_model, ckmb_df, type = "response")
+    
+    p <- ggplot() +
       labs(
-        title = "Systolic Blood Pressure and Heart Attack Risk",
-        subtitle = "BP ≥140 mmHg increases the strain on the arteries and heart",
-        x = "Systolic Blood Pressure Category",
-        y = "Number of People",
-        fill = "Outcome"
+        title = "Biomarker Sensitivity Curve",
+        subtitle = "Troponin rises earlier → higher sensitivity",
+        x = "Biomarker concentration",
+        y = "Probability of Heart Attack",
+        color = "Biomarker"
       ) +
       theme_minimal(base_size = 14)
+    
+    if (input$curve_bio %in% c("Troponin", "Both")) {
+      p <- p + geom_line(data = troponin_df,
+                         aes(x = troponin_ngl, y = prob, color = "Troponin"), size = 1.4)
+    }
+    
+    if (input$curve_bio %in% c("CK-MB", "Both")) {
+      p <- p + geom_line(data = ckmb_df,
+                         aes(x = ck_mb, y = prob, color = "CK-MB"),
+                         size = 1.4, linetype = "dashed")
+    }
+    
+    p + scale_color_manual(values = c("Troponin" = "#0072B2", "CK-MB" = "#D55E00"))
   })
 }
-
 # ---------------------------------
 # RUN APP
 # ---------------------------------
