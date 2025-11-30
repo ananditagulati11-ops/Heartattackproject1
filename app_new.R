@@ -322,18 +322,76 @@ server <- function(input, output, session) {
   # BOX PLOTS PAGE
   # ----------------------------------------
   output$box1 <- renderPlot({
-    ggplot(data, aes(x = heart_attack, y = troponin_ngl, fill = heart_attack)) +
-      geom_boxplot() + ggtitle("Troponin Levels") + theme_minimal()
+    data %>%
+      mutate(
+        troponin_cat = ifelse(troponin_ngl >= 14,
+                              "High Troponin (Possible Heart Injury)",
+                              "Normal Troponin"),
+        troponin_cat = factor(troponin_cat, levels = c("Normal Troponin", "High Troponin (Possible Heart Injury)"))
+      ) %>%
+      count(heart_attack, troponin_cat) %>%
+      ggplot(aes(x = troponin_cat, y = n, fill = heart_attack)) +
+      geom_col(position = "dodge") +
+      labs(
+        title = "Troponin Levels and Heart Attack Risk",
+        subtitle = "High Troponin usually indicates heart muscle damage",
+        x = "Troponin Category",
+        y = "Number of People",
+        fill = "Outcome"
+      ) +
+      theme_minimal(base_size = 14)
   })
   
+  # =======================
+  # 2) CK-MB Risk Plot
+  # =======================
   output$box2 <- renderPlot({
-    ggplot(data, aes(x = heart_attack, y = ck_mb, fill = heart_attack)) +
-      geom_boxplot() + ggtitle("CK-MB Levels") + theme_minimal()
+    data %>%
+      mutate(
+        ckmb_cat = ifelse(ck_mb >= 25,
+                          "High CK-MB (Muscle Damage)",
+                          "Normal CK-MB"),
+        ckmb_cat = factor(ckmb_cat, levels = c("Normal CK-MB", "High CK-MB (Muscle Damage)"))
+      ) %>%
+      count(heart_attack, ckmb_cat) %>%
+      ggplot(aes(x = ckmb_cat, y = n, fill = heart_attack)) +
+      geom_col(position = "dodge") +
+      labs(
+        title = "CK-MB Levels and Heart Attack Risk",
+        subtitle = "Elevated CK-MB suggests damage to heart or skeletal muscle",
+        x = "CK-MB Category",
+        y = "Number of People",
+        fill = "Outcome"
+      ) +
+      theme_minimal(base_size = 14)
   })
   
+  # =======================
+  # 3) Heart Rate Risk Plot
+  # =======================
+  # 3) Systolic Blood Pressure Risk Plot
+  # =======================
   output$box3 <- renderPlot({
-    ggplot(data, aes(x = heart_attack, y = heart_rate, fill = heart_attack)) +
-      geom_boxplot() + ggtitle("Heart Rate") + theme_minimal()
+    data %>%
+      mutate(
+        sbp_cat = ifelse(systolic_blood_pressure >= 140,
+                         "High Systolic BP (Hypertension)",
+                         "Normal Systolic BP"),
+        sbp_cat = factor(sbp_cat,
+                         levels = c("Normal Systolic BP",
+                                    "High Systolic BP (Hypertension)"))
+      ) %>%
+      count(heart_attack, sbp_cat) %>%
+      ggplot(aes(x = sbp_cat, y = n, fill = heart_attack)) +
+      geom_col(position = "dodge") +
+      labs(
+        title = "Systolic Blood Pressure and Heart Attack Risk",
+        subtitle = "BP ≥140 mmHg increases the strain on the arteries and heart",
+        x = "Systolic Blood Pressure Category",
+        y = "Number of People",
+        fill = "Outcome"
+      ) +
+      theme_minimal(base_size = 14)
   })
 }
 
