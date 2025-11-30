@@ -205,9 +205,9 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                  ),
                  
                  # ================= PLOT PAGE =================
-                 tabPanel("Boxplot Analysis",
+                 tabPanel("Biomarker Patterns",
                           fluidPage(
-                            h3("Biomarker Distribution Overview"),
+                            h3("Biomarker Patterns in Heart Attack vs No Attack"),
                             p("These boxplots display how key biomarkers differ between patients who had a heart attack and those who did not."),
                             p("Higher biomarker values—such as Troponin or CK-MB—often indicate increased cardiac muscle injury."),
                             br(),
@@ -293,8 +293,8 @@ server <- function(input, output, session) {
     factor_names <- c("troponin_ngl" = "Troponin",
                       "ck_mb" = "CK-MB",
                       "heart_rate" = "Heart Rate",
-                      "Systolic BP" = "systolic_blood_pressure",
-                      "Diastolic BP" = "diastolic_blood_pressure")
+                      "systolic_blood_pressure" = "Systolic BP",
+                      "diastolic_blood_pressure" = "Diasttolic BP")
     
     biomarker <- factor_names[[input$factor]]
     
