@@ -202,13 +202,14 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                               )
                             )
                           )
-                 ),
+                
+                           ),
                  
                  # ================= PLOT PAGE =================
                  tabPanel("Biomarker Patterns",
                           fluidPage(
                             h3("Biomarker Patterns in Heart Attack vs No Attack"),
-                            p("These boxplots display how key biomarkers differ between patients who had a heart attack and those who did not."),
+                            p("They display how key biomarkers differ between patients who had a heart attack and those who did not."),
                             p("Higher biomarker values—such as Troponin or CK-MB—often indicate increased cardiac muscle injury."),
                             br(),
                             
@@ -225,6 +226,7 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                           )
                  )
 )
+                 
 
 # ---------------------------------
 # SERVER LOGIC
