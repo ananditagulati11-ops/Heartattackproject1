@@ -114,7 +114,8 @@ library(janitor)
 library(ggplot2)
 
 # Load raw data
-data_raw <- read_xlsx("D:/R studio/Shiny/Heartattackproject1/Medicaldataset.xlsx")
+install.packages("readxl")
+data_raw <- read_xlsx("Medicaldataset.xlsx")
 
 # Create working copy
 data <- data_raw
@@ -132,16 +133,14 @@ data$troponin_ngl <- data$troponin * 1000
 # Convert gender to Female/Male
 # Convert gender 0/1 → Female/Male (numeric safe)
 data$gender <- factor(
-  data$gender,
-  levels = c(0, 1),
+  as.character(data$gender),
+  levels = c("0", "1"),
   labels = c("Female", "Male")
 )
-class(data$gender)
-View(data$gender)
-View(data$heart_attack)
+
 # Convert heart_attack values to FALSE/TRUE
 data$heart_attack <- factor(
-  as.character(data$heart_attack),
+  tolower(trimws(as.character(data$heart_attack))),
   levels = c("negative", "positive"),
   labels = c(FALSE, TRUE)
 )
@@ -174,3 +173,4 @@ write.csv(data, "cleaned_heart_attack_data.csv", row.names = FALSE)
 ##############################
 # END OF CLEANING SCRIPT     #
 ##############################
+
