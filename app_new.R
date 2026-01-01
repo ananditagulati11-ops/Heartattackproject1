@@ -182,7 +182,6 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                               sidebarPanel(
                                 h4("Select Patient Characteristics"),
                                 
-                                # >>> CLEAN AGE SLIDER (NO TICKS) <<<
                                 sliderInput(
                                   "age", "Age range:",
                                   min = min(data$age, na.rm = TRUE),
@@ -190,7 +189,7 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                                   value = c(min(data$age, na.rm = TRUE),
                                             max(data$age, na.rm = TRUE)),
                                   step = 1,
-                                  ticks = FALSE  # removes clutter under slider
+                                  ticks = FALSE
                                 ),
                                 
                                 checkboxGroupInput("gender", "Gender:",
@@ -212,9 +211,29 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                                 h3("Personalized Heart Attack Risk Assessment"),
                                 uiOutput("riskCard"),
                                 br(),
+                                
                                 uiOutput("biomarkerCard"),
                                 br(),
-                                tableOutput("summaryTable")
+                                
+                                tableOutput("summaryTable"),
+                                br(),
+                                hr(),
+                                
+                                # ✅ NOW: placed BELOW everything else on dashboard
+                                h3("Combined Biomarker Trends Across Age"),
+                                
+                                # ✅ Interactive selector (choose biomarker level to visualize)
+                                checkboxGroupInput(
+                                  "age_biomarkers",
+                                  "Choose biomarker(s) to display:",
+                                  choices = c("Troponin" = "troponin_ngl",
+                                              "CK-MB" = "ck_mb"),
+                                  selected = c("troponin_ngl", "ck_mb"),
+                                  inline = TRUE
+                                ),
+                                
+                                plotOutput("box4", height = "350px"),
+                                uiOutput("age_bio_msg")
                               )
                             )
                           )
@@ -238,11 +257,6 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                             
                             plotOutput("box3"),
                             uiOutput("biomarker_comp_msg"),
-                            br(),
-                            
-                            h3("Continuous Biomarker Trends Across Age"),
-                            plotOutput("box4", height = "350px"),
-                            uiOutput("age_bio_msg"),
                             br()
                           )
                  )
@@ -296,8 +310,8 @@ server <- function(input, output, session) {
         p("Average value in selected group:", strong(mean_group)),
         p("Overall dataset average:", strong(mean_total)),
         p(ifelse(ratio > 1,
-                 paste0("➡️ **", ratio, "× higher** ", biomarker, " levels"),
-                 paste0("➡️ **", ratio, "× lower** ", biomarker, " levels")
+                 paste0("➡️ ", ratio, "× higher ", biomarker, " levels"),
+                 paste0("➡️ ", ratio, "× lower ", biomarker, " levels")
         ))
     )
   })
@@ -337,25 +351,51 @@ server <- function(input, output, session) {
       theme_minimal()
   })
   
-  # -------- PLOT 3: Sensitivity Curve --------
+  # -------- PLOT 3: Sensitivity Curve (FIXED: responds to dropdown) --------
   output$box3 <- renderPlot({
-    tm <- glm(heart_attack ~ troponin_ngl, data=data, family=binomial)
-    cm <- glm(heart_attack ~ ck_mb, data=data, family=binomial)
+    req(input$curve_bio)
     
-    td <- data.frame(troponin_ngl=seq(min(data$troponin_ngl),
-                                      max(data$troponin_ngl),100))
-    td$prob <- predict(tm, td, type="response")
+    tm <- glm(heart_attack ~ troponin_ngl, data = data, family = binomial)
+    cm <- glm(heart_attack ~ ck_mb, data = data, family = binomial)
     
-    cd <- data.frame(ck_mb=seq(min(data$ck_mb),
-                               max(data$ck_mb),100))
-    cd$prob <- predict(cm, cd, type="response")
+    td <- data.frame(
+      troponin_ngl = seq(min(data$troponin_ngl, na.rm = TRUE),
+                         max(data$troponin_ngl, na.rm = TRUE),
+                         length.out = 200)
+    )
+    td$prob <- predict(tm, newdata = td, type = "response")
     
-    ggplot() +
-      geom_line(data=td, aes(troponin_ngl, prob), size=1.2, color="#0072B2") +
-      geom_line(data=cd, aes(ck_mb, prob), size=1.2, color="#D55E00", linetype="dashed") +
-      labs(title="Biomarker Sensitivity Curve",
-           x="Biomarker Level", y="Probability of Heart Attack") +
-      theme_minimal()
+    cd <- data.frame(
+      ck_mb = seq(min(data$ck_mb, na.rm = TRUE),
+                  max(data$ck_mb, na.rm = TRUE),
+                  length.out = 200)
+    )
+    cd$prob <- predict(cm, newdata = cd, type = "response")
+    
+    if (input$curve_bio == "Troponin") {
+      ggplot(td, aes(x = troponin_ngl, y = prob)) +
+        geom_line(linewidth = 1.2, color = "#0072B2") +
+        labs(title = "Biomarker Sensitivity Curve: Troponin",
+             x = "Troponin Level", y = "Probability of Heart Attack") +
+        theme_minimal()
+      
+    } else if (input$curve_bio == "CK-MB") {
+      ggplot(cd, aes(x = ck_mb, y = prob)) +
+        geom_line(linewidth = 1.2, color = "#D55E00") +
+        labs(title = "Biomarker Sensitivity Curve: CK-MB",
+             x = "CK-MB Level", y = "Probability of Heart Attack") +
+        theme_minimal()
+      
+    } else {
+      ggplot() +
+        geom_line(data = td, aes(x = troponin_ngl, y = prob),
+                  linewidth = 1.2, color = "#0072B2") +
+        geom_line(data = cd, aes(x = ck_mb, y = prob),
+                  linewidth = 1.2, color = "#D55E00", linetype = "dashed") +
+        labs(title = "Biomarker Sensitivity Curve: Troponin vs CK-MB",
+             x = "Biomarker Level", y = "Probability of Heart Attack") +
+        theme_minimal()
+    }
   })
   
   output$biomarker_comp_msg <- renderUI({
@@ -367,39 +407,52 @@ server <- function(input, output, session) {
     ")
   })
   
-  # -------- PLOT 4: CONTINUOUS AGE-BIOMARKER TREND --------
+  # -------- PLOT 4: Combined Biomarker Trends Across Age (Interactive) --------
   output$box4 <- renderPlot({
     df <- filtered(); req(nrow(df) > 0)
+    req(!is.null(input$age_biomarkers))
+    req(length(input$age_biomarkers) >= 1)
     
-    df <- df %>%
-      select(age, heart_attack, troponin_ngl, ck_mb) %>%
-      pivot_longer(cols=c(troponin_ngl, ck_mb),
-                   names_to="biomarker", values_to="value") %>%
-      mutate(biomarker=recode(biomarker,
-                              "troponin_ngl"="Troponin",
-                              "ck_mb"="CK-MB"))
+    chosen <- input$age_biomarkers
     
-    ggplot(df, aes(age, value, color=biomarker)) +
-      geom_smooth(method="loess", se=FALSE, size=1.4) +
-      facet_wrap(~heart_attack) +
+    df_long <- df %>%
+      select(age, heart_attack, all_of(chosen)) %>%
+      pivot_longer(cols = all_of(chosen),
+                   names_to = "biomarker",
+                   values_to = "value") %>%
+      mutate(biomarker = recode(biomarker,
+                                "troponin_ngl" = "Troponin",
+                                "ck_mb" = "CK-MB"))
+    
+    ggplot(df_long, aes(
+      x = age,
+      y = value,
+      color = biomarker,
+      linetype = heart_attack,
+      group = interaction(biomarker, heart_attack)
+    )) +
+      geom_smooth(method = "loess", se = FALSE, linewidth = 1.3) +
       labs(
-        title="Biomarker Levels Across Age",
-        subtitle=paste("Age range selected:", input$age[1], "to", input$age[2]),
-        x="Age (years)", y="Biomarker Value",
-        color="Biomarker"
+        title = "Combined Biomarker Trends Across Age",
+        subtitle = "Solid vs dashed lines indicate Heart Attack status",
+        x = "Age (years)",
+        y = "Biomarker Value",
+        color = "Biomarker",
+        linetype = "Heart Attack Status"
       ) +
       theme_minimal()
   })
   
   output$age_bio_msg <- renderUI({
-    HTML("
-      <b>Interpretation:</b><br>
-      • This continuous plot shows how biomarkers change with age.<br>
-      • Use the <b>Age Range</b> slider on the Dashboard to explore trends.<br>
-      • Troponin increases earlier → sensitive early marker.<br>
-      • CK-MB rises later → indicates established myocardial injury.<br>
-      • When both are elevated, heart attack likelihood rises sharply.
-    ")
+    if (is.null(input$age_biomarkers) || length(input$age_biomarkers) == 0) {
+      HTML("<b>Please select at least one biomarker to display.</b>")
+    } else {
+      HTML("
+        <b>Interpretation:</b><br>
+        • This combined line chart updates based on your biomarker selection.<br>
+        • Solid vs dashed lines indicate Heart Attack status.
+      ")
+    }
   })
 }
 
