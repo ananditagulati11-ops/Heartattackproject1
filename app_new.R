@@ -155,12 +155,13 @@ library(tidyr)
 # ---------------------------------
 data <- read.csv("cleaned_heart_attack_data.csv")
 
+data$heart_attack <- as.logical(data$heart_attack) 
+
 data$heart_attack <- factor(
   data$heart_attack,
-  levels = c(0, 1),
+  levels = c(FALSE, TRUE),
   labels = c("No Attack", "Heart Attack")
 )
-
 data$gender <- as.factor(data$gender)
 
 # ---------------------------------
@@ -219,10 +220,10 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                                 br(),
                                 hr(),
                                 
-                                # ✅ NOW: placed BELOW everything else on dashboard
+                                
                                 h3("Combined Biomarker Trends Across Age"),
                                 
-                                # ✅ Interactive selector (choose biomarker level to visualize)
+                                
                                 checkboxGroupInput(
                                   "age_biomarkers",
                                   "Choose biomarker(s) to display:",
