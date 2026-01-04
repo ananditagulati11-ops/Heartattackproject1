@@ -211,6 +211,11 @@ ui <- navbarPage("Heart Attack Risk Explorer",
                               mainPanel(
                                 h3("Personalized Heart Attack Risk Assessment"),
                                 uiOutput("riskCard"),
+                                div(
+                                  style = "margin-top:8px; font-size:12px; color:#666666; font-style:italic;",
+                                  "Disclaimer: This tool is for exploratory and educational use only and is not intended for clinical diagnosis or individual risk prediction."
+                                ),
+                                
                                 br(),
                                 
                                 uiOutput("biomarkerCard"),
@@ -280,16 +285,20 @@ server <- function(input, output, session) {
   output$riskCard <- renderUI({
     df <- filtered(); req(nrow(df) > 0)
     prob <- round(sum(df$heart_attack == "Heart Attack") / nrow(df) * 100, 1)
+    risk_label <- if (prob > 50) {tags$p("⚠️ High Risk Category",
+             style = "color:#b30000; font-weight:bold;") } else {
+      tags$p("🟢 Lower Risk Category",
+             style = "color:#008000; font-weight:bold;")
+    }
     
-    div(style="padding:20px; background:#f5f5f5; border-radius:10px;",
-        h4("📊 Estimated Heart Attack Probability"),
-        p("Based on people matching your selected criteria:"),
-        h2(paste0(prob, "% likelihood")),
-        ifelse(
-          prob > 50,
-          p("⚠️ High Risk Category", style="color:#b30000; font-weight:bold;"),
-          p("🟢 Lower Risk Category", style="color:#008000; font-weight:bold;")
-        )
+    tagList(
+      div(
+        style = "padding:20px; background:#f5f5f5; border-radius:10px;",
+        tags$h4("📊 Estimated Heart Attack Probability"),
+        tags$p("Based on people matching your selected criteria:"),
+        tags$h2(paste0(prob, "% likelihood")),
+        risk_label
+      )
     )
   })
   
