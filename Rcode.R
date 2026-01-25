@@ -171,6 +171,6 @@ boxplot(ck_mb ~ heart_attack, data = data,
 write.csv(data, "cleaned_heart_attack_data.csv", row.names = FALSE)
 
 ##############################
-# END OF CLEANING SCRIPT     #
+# END OF CLEANING SCRIPT     
 ##############################
 
